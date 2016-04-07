@@ -22,10 +22,6 @@ data _⁻¹_ {A B : Set}(f : A → B) : Pow B where
 -- to create an ornament where multiple input values are translated to the
 -- _same_ output value, making a forget function impossible.
 
-tabulateCtors : ∀{#c I} → (Fin #c → ConDesc I) → DatDesc I #c
-tabulateCtors {zero} f = `0
-tabulateCtors {suc #c} f = f 0 `+ tabulateCtors (f ∘ suc)
-
 mutual
   data Orn {I J : Set}(u : J → I) : ∀{dt} (D : Desc I dt) → Set₁ where
     ι : ∀{i} → (j : u ⁻¹ i) → Orn u (ι i)
@@ -101,6 +97,13 @@ idOrn {D = ΣK S xs} = ΣK (λ _ → idOrn)
 idOrn {D = rec i * xs} = rec (inv i) * idOrn
 idOrn {D = `0} = `0
 idOrn {D = x `+ xs} = idOrn `+ idOrn
+
+idOrn-sound : ∀{I dt}(D : Desc I dt) → ornToDesc (idOrn {D = D}) ≡ D
+idOrn-sound (ι x) = refl
+idOrn-sound (ΣK S xs) = cong (ΣK S) {!ext!}
+idOrn-sound (rec i * xs) = {!!}
+idOrn-sound `0 = {!!}
+idOrn-sound (x `+ xs) = {!!}
 
 
 ----------------------------------------

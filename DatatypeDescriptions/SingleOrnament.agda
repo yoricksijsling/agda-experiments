@@ -64,6 +64,8 @@ recons : De constructorspine (c₁ `+ c₂ `+ .. `+ cn) wordt geinterpreteerd al
          resulterende type zorgt ervoor dat de gebruiker het nieuwe aantal
          constructors kan kiezen, en voor elke nieuwe constructor kan kiezen
          met welke oude constructor het overeen komt.
+         Voorbeeld usecase: Je hebt List A, en wil een ABList A B maken die twee
+         soorten nodes heeft.
 
 -}
 mutual
