@@ -10,67 +10,60 @@ open import Shared.Semantics
 Pow : Set → Set₁
 Pow I = I → Set
 
-
 module Context where
-  -- _▶_ is exactly Σ but with nesting suitable for our purposes
-  infixl 0 _▶_
-  data _▶_  {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
-    _,_ : (x : A) (y : B x) → A ▶ B
+  infixl 0 _▷_ _▶_
 
-  pop : ∀ {a b} {A : Set a} {B : A → Set b} → A ▶ B → A
-  pop (x , y) = x
+  -- Exactly Σ, but looks better with the nesting produced by Cx.
+  record _▶_ {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
+    constructor _,_
+    field
+      pop : A
+      top : B pop
+  open _▶_ public
 
-  top : ∀ {a b} {A : Set a} {B : A → Set b} (p : A ▶ B) → B (pop p)
-  top (x , y) = y
-
-  infixl 0 _▷_
   mutual
     data Cx : Set₂ where
       _▷Set : (Γ : Cx) → Cx
       _▷_ : (Γ : Cx)(S : ⟦ Γ ⟧Cx → Set) → Cx
       ε : Cx
+
     ⟦_⟧Cx : Cx → Set₁
-    ⟦ Γ ▷Set ⟧Cx = ⟦ Γ ⟧Cx ▶ const Set
-    ⟦ Γ ▷ S ⟧Cx = ⟦ Γ ⟧Cx ▶ S
+    ⟦ Γ ▷Set ⟧Cx = (⟦ Γ ⟧Cx ▶ const Set)
+    ⟦ Γ ▷ S ⟧Cx = (⟦ Γ ⟧Cx ▶ S)
     ⟦ ε ⟧Cx = ⊤′
 
   instance Cx-semantics : Semantics Cx
            Cx-semantics = record { ⟦_⟧ = ⟦_⟧Cx }
   {-# DISPLAY ⟦_⟧Cx x = ⟦_⟧ x #-}
-  
-  -- infix 3 _∋_
-  -- data _∋_ : (Γ : Cx) (T : ⟦ Γ ⟧ → Set) → Set₁ where
-  --   top : ∀{Γ T} → Γ ▷ T ∋ T ∘ fst
-  --   pop : ∀{Γ S T} → Γ ∋ T → Γ ▷ S ∋ T ∘ fst
 
-  -- ⟦_⟧∋ : ∀{Γ T} → Γ ∋ T → (γ : ⟦ Γ ⟧) → T γ
-  -- ⟦ top ⟧∋ (_ , t) = t
-  -- ⟦ pop i ⟧∋ (γ , _) = ⟦ i ⟧∋ γ
 
   -- Wrap this function in a record to help the type checker
   record Cxf (Γ Δ : Cx) : Set₁ where
     constructor mk
     field
       apply : ⟦ Γ ⟧ → ⟦ Δ ⟧
-  -- open Cxf
+  open Cxf
 
-  cxf-ε : Cxf ε ε
-  cxf-ε = mk id
+  cxf-make : ∀ Γ Δ → (⟦ Γ ⟧ → ⟦ Δ ⟧) → Cxf Γ Δ
+  cxf-make _ _ = mk
+  
+  cxf-id : ∀ Γ → Cxf Γ Γ
+  cxf-id Γ = mk id
 
-  cxf-id : ∀ {Γ} → Cxf Γ Γ
-  cxf-id = mk id
+  cxf-∘ : ∀{Γ Δ Χ} → (f : Cxf Δ Χ) → (g : Cxf Γ Δ) → Cxf Γ Χ
+  cxf-∘ f g = mk (apply f ∘ apply g)
 
-  cxf-both : ∀{Γ Δ S} → (f : Cxf Δ Γ) → Cxf (Δ ▷ (S ∘ Cxf.apply f)) (Γ ▷ S)
-  cxf-both f = mk λ { (δ , s) → Cxf.apply f δ , s }
+  cxf-both : ∀{Γ Δ S} → (f : Cxf Δ Γ) → Cxf (Δ ▷ (S ∘ apply f)) (Γ ▷ S)
+  cxf-both f = mk λ δ → apply f (pop δ) , top δ
 
   cxf-forget : {Γ Δ : Cx} → (f : Cxf Δ Γ) → (S : ⟦ Δ ⟧ → Set) → Cxf (Δ ▷ S) Γ
-  cxf-forget f S = mk λ { (δ , _) → Cxf.apply f δ }
+  cxf-forget f S = mk λ δ → apply f (pop δ)
 
-  cxf-instantiate : ∀{Γ Δ S} → (f : Cxf Δ Γ) → (s : (γ : ⟦ Γ ⟧) → S γ) → Cxf Δ (Γ ▷ S)
-  cxf-instantiate f s = mk λ {x → (Cxf.apply f x) , s (Cxf.apply f x)}
+  cxf-instantiate : ∀{Γ Δ S} → (f : Cxf Δ Γ) → (s : (γ : ⟦ Δ ⟧) → S (apply f γ)) → Cxf Δ (Γ ▷ S)
+  cxf-instantiate f s = mk λ δ → (apply f δ) , s δ
 
-  -- cxf-both-id : ∀{Γ S} → cxf-both {Γ = Γ} {S = S} (cxf-id {Γ}) ≡ cxf-id {Γ ▷ S}
-  -- cxf-both-id {Γ} {S} = cong mk {!Cxf.apply (cxf-id {Γ})!}
+  cxf-instantiateSet : ∀{Γ Δ} → (f : Cxf Δ Γ) → (s : (γ : ⟦ Δ ⟧) → Set) → Cxf Δ (Γ ▷Set)
+  cxf-instantiateSet f s = mk λ δ → (apply f δ) , s δ
 
 
 module Simple where
@@ -101,6 +94,31 @@ module Simple where
 
   data μ {#c : Nat}(F : DatDesc #c) : Set where
     ⟨_⟩ : ⟦ F ⟧datDesc (μ F) → μ F
+
+  ----------------------------------------
+  -- Folding
+
+  DatAlg : ∀{#c} → DatDesc #c → Set → Set
+  DatAlg D X = ⟦ D ⟧datDesc X → X
+  ConAlg : ∀{Γ} → ConDesc Γ → ⟦ Γ ⟧ → Set → Set
+  ConAlg D γ X = ⟦ D ⟧conDesc γ X → X
+
+  module Fold {#c}{D : DatDesc #c}{X} (α : DatAlg D X) where
+    mutual
+      fold : μ D → X
+      fold ⟨ xs ⟩ = α (datDescmap-fold D xs) -- D and xs are the starting arguments
+
+      -- Map the fold. It recurses on the description and needs local contexts
+      -- to do the mapping. But when the fold is called all this can be
+      -- forgotten.
+      conDescmap-fold : ∀{Γ′} (D′ : ConDesc Γ′) {γ′} (xs : ⟦ D′ ⟧conDesc γ′ (μ D)) → ⟦ D′ ⟧conDesc γ′ X
+      conDescmap-fold ι tt = tt
+      conDescmap-fold (S `* xs) (s , v) = s , conDescmap-fold xs v
+      conDescmap-fold (rec-`* xs) (s , v) = fold s , conDescmap-fold xs v
+      datDescmap-fold : ∀{#c} (D′ : DatDesc #c) (xs : ⟦ D′ ⟧datDesc (μ D)) → ⟦ D′ ⟧datDesc X
+      datDescmap-fold `0 (() , _)
+      datDescmap-fold (x `+ xs) (k , v) = k , conDescmap-fold (lookupCtor (x `+ xs) k) v
+  open Fold using (fold) public
 
 module IndicesAndParams where
   open Context public
@@ -176,6 +194,12 @@ module IndicesAndParams where
   ----------------------------------------
   -- Folding
 
+  -- Passing the context makes sense, because an algebra may be specific to a
+  -- particular context. If the algebra is for a whole datatype, the context
+  -- corresponds with the parameters. 
+  -- sumAlg : Alg listD (ε ▶ Nat) (const Nat)
+  -- lengthAlg : ∀{A} → Alg listD (ε ▶ A) (const Nat)
+  
   Alg : ∀{I Γ dt} → Desc I Γ dt → ⟦ Γ ⟧ → Pow I → Set
   Alg {I} D γ X = {i : I} → ⟦ D ⟧ γ X i → X i
 
