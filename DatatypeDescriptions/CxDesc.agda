@@ -11,7 +11,7 @@ Pow : Set → Set₁
 Pow I = I → Set
 
 module Context where
-  infixl 0 _▷_ _▶_
+  infixl 0 _▷_ _▷Set _▶_
 
   -- Exactly Σ, but looks better with the nesting produced by Cx.
   record _▶_ {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
