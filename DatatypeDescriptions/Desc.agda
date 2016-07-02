@@ -241,10 +241,10 @@ module Indices where
   wrapeqD-eq x y x=y = ⟨ 0 , x , y , x=y , refl ⟩
 
   -- THIS FAILS
-  countArgs : ConDesc ⊤ → Nat
-  countArgs (ι x) = 0
-  countArgs (ΣK S xs) = suc (countArgs (xs {!!}))
-  countArgs (rec i * xs) = suc (countArgs xs)
+  -- countArgs : ConDesc ⊤ → Nat
+  -- countArgs (ι x) = 0
+  -- countArgs (ΣK S xs) = suc (countArgs (xs {!!}))
+  -- countArgs (rec i * xs) = suc (countArgs xs)
   -- Makes sense because you can make nats with one constructor:
   nat1D : EnvDesc 0 ⊤
   nat1D env = (ΣK Bool λ { false → ι tt ; true → rec tt * ι tt }) `+ `0

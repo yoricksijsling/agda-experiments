@@ -11,31 +11,7 @@ Pow : Set → Set₁
 Pow I = I → Set
 
 module Context where
-  infixl 0 _▷_ _▷Set _▶_
-
-  -- Exactly Σ, but looks better with the nesting produced by Cx.
-  record _▶_ {a b} (A : Set a) (B : A → Set b) : Set (a ⊔ b) where
-    constructor _,_
-    field
-      pop : A
-      top : B pop
-  open _▶_ public
-
-  mutual
-    data Cx : Set₂ where
-      _▷Set : (Γ : Cx) → Cx
-      _▷_ : (Γ : Cx)(S : ⟦ Γ ⟧Cx → Set) → Cx
-      ε : Cx
-
-    ⟦_⟧Cx : Cx → Set₁
-    ⟦ Γ ▷Set ⟧Cx = (⟦ Γ ⟧Cx ▶ const Set)
-    ⟦ Γ ▷ S ⟧Cx = (⟦ Γ ⟧Cx ▶ S)
-    ⟦ ε ⟧Cx = ⊤′
-
-  instance Cx-semantics : Semantics Cx
-           Cx-semantics = record { ⟦_⟧ = ⟦_⟧Cx }
-  {-# DISPLAY ⟦_⟧Cx x = ⟦_⟧ x #-}
-
+  open import DatatypeDescriptions.CxEq public
 
   -- Wrap this function in a record to help the type checker
   record Cxf (Γ Δ : Cx) : Set₁ where
